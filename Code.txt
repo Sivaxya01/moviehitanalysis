@@ -1,0 +1,214 @@
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+# Input data files are available in the read-only "../input/" directory
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+
+import os
+for dirname, _, filenames in os.walk('/kaggle/input'):
+    for filename in filenames:
+        print(os.path.join(dirname, filename))
+
+
+
+#Importing Dependecies
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib as mpl
+import matplotlib.patches as patches
+import matplotlib.pyplot as plt
+from IPython.display import display_html
+import plotly.graph_objects as go
+import plotly.express as px
+import plotly.graph_objs as go
+from plotly.subplots import make_subplots
+# Color palette
+my_colors = ["#ce8f5a", "#efd199", "#80c8bc", "#5ec0ca", "#6287a2"]
+sns.palplot(sns.color_palette(my_colors))
+
+# Set Style
+sns.set_style("white")
+mpl.rcParams['xtick.labelsize'] = 16
+mpl.rcParams['ytick.labelsize'] = 16
+mpl.rcParams['axes.spines.left'] = False
+mpl.rcParams['axes.spines.right'] = False
+mpl.rcParams['axes.spines.top'] = False
+class color:
+    BOLD = '\033[1m' + '\033[93m'
+    END = '\033[0m'
+
+
+#Loading Data
+
+
+data = pd.read_csv('/C:/data/imdb-top-250-movies-dataset/IMDB Top 250 Movies.csv')
+data.head()
+
+print(color.BOLD + "Movies Data shape:" + color.END, "{}".format(data.shape), "\n")
+plt.figure(figsize = (25, 11))
+sns.heatmap(data.isna(), cmap = [my_colors[1], 
+                                                      my_colors[2]], xticklabels=data.columns)
+plt.title("Missing values in Data", size=20);
+
+
+Data Statistics
+
+data.info()
+
+data.describe()
+
+# Split the genres column into separate columns
+genres_df = data['genre'].str.split(',', expand=True)
+
+# Rename the columns
+num_cols = len(genres_df.columns)
+genres_df.columns = [f'genre_{i}' for i in range(1, num_cols+1)]
+
+# Concatenate the new columns with the original DataFrame
+data = pd.concat([data, genres_df], axis=1)
+
+#To View Data
+data
+
+#Copying Data
+df = data.copy()
+
+EXPLORATORY DATA ANALYSIS
+top_rates=df.groupby('genre').mean().sort_values('rating',ascending=False).head(10)
+top_rates = top_rates[['rating']].round(2)
+top_rates.reset_index(inplace=True)
+top_rates
+
+#Box Office by Certificate
+
+fig = px.violin(df, x='certificate', y='box_office', color='genre', title='Box Office by Certificate')
+fig.show()
+
+#Box Office by Genre
+
+fig = px.box(df, x='genre', y='box_office', color='genre', title='Box Office by Genre')
+fig.show()
+
+#Top 10 Movies belong to which Genre?
+top_rates = data.nlargest(10, 'rating')
+fig = go.Figure(data=[go.Bar(x=top_rates['genre'], y=top_rates['rating'], marker={'color': '#dba506'})])
+fig.update_layout(title='Top 10 Movies by Genre', )
+fig.show()
+
+#Top 10 Movies by Rating
+top_movies = data.nlargest(10, 'rating')
+fig = go.Figure(data=[go.Bar(x=top_movies['name'], y=top_movies['rating'], marker={'color': '#dba506'})])
+fig.update_layout(title='Top 10 Movies by Rating')
+fig.show()
+
+#Top 10 Movie Writers
+
+top_movies_w = data.nlargest(10, 'rating')
+fig = go.Figure(data=[go.Bar(x=top_movies['writers'], y=top_movies_w['rating'], marker={'color': '#dba506'})])
+fig.update_layout(title='Top 10 Movies by Writers')
+fig.show()
+
+#Top 10 Movie Directors
+
+top_movies_d = data.nlargest(10, 'rating')
+fig = go.Figure(data=[go.Bar(x=top_movies['directors'], y=top_movies_d['rating'], marker={'color': '#dba506'})])
+fig.update_layout(title='Top 10 Movies by Directors')
+fig.show()
+
+#The Best Cast
+top_movies_d = data.nlargest(10, 'rating')
+fig = go.Figure(data=[go.Bar(x=top_movies['casts'], y=top_movies_d['rating'], marker={'color': '#dba506'})])
+fig.update_layout(title='Top 10 Movies by Casts')
+fig.show()
+
+data['box_office'] = data['box_office'].replace("Not Available", 0)
+
+#Top 10 Movies by Cast
+
+data['box_office'] = data['box_office'].replace("Not Available", 0)
+certificate_counts = data['certificate'].value_counts()
+certificate_counts
+
+#Top Movies Genre
+genre_counts = data['genre'].value_counts()
+fig = go.Figure(data=[go.Pie(labels=genre_counts.index.tolist(), values=genre_counts.tolist())])
+fig.update_layout(title='Movie Genres')
+fig.show()
+
+#Data Based on Raings
+fig = px.ecdf(data, x='rating', color_discrete_sequence=['#dba506'])
+fig.show()
+fig = px.histogram(data, x='rating', nbins=20, color_discrete_sequence=['#dba506'])
+fig.show()
+
+#Movie Rating by Genre and Year
+grouped_df = df.groupby(['genre', 'year', 'rating']).size().reset_index(name='count')
+fig = px.sunburst(grouped_df, path=['genre', 'year', 'rating'], values='count')
+fig.update_layout(title='Movie Ratings by Genre and Year', height = 1200, width = 1200)
+fig.show()
+
+#Which director has the most movies on the Top 250 list?
+
+df_directors = df['directors'].str.split(',', expand=True).stack().reset_index(level=1, drop=True).rename('director')
+df_top_directors = df_directors.value_counts().nlargest(10)
+
+fig = px.bar(df_top_directors, x=df_top_directors.index, y=df_top_directors.values, labels={'x': 'Director', 'y': 'Number of Movies Directed'}, color_discrete_sequence=['#dba506'])
+fig.show()
+
+#Which genre has the highest average rating?
+
+grouped_df = data.groupby('genre_1')['rating'].mean().reset_index()
+fig = px.bar(grouped_df, x='genre_1', y='rating', title='Average Rating by Genre', color_discrete_sequence=['#dba506'])
+fig.update_layout(xaxis_title='Genre', yaxis_title='Average Rating')
+fig.show()
+
+#Average Rating by Genre
+
+grouped_df = data.groupby('year')['rating'].mean().reset_index()
+
+# Create a line plot of the mean rating over time using Plotly
+fig = px.line(grouped_df, x='year', y='rating', title='Average Rating over Time', color_discrete_sequence=['#dba506'])
+
+# Customize the plot
+fig.update_layout(xaxis_title='Year', yaxis_title='Average Rating')
+
+# Show the plot
+fig.show()
+
+#Average Rating over Time
+grouped_df = data.groupby(['year', 'genre'])['rating'].mean().reset_index()
+fig = px.line(grouped_df, x='year', y='rating', color='genre', title='Average Rating over Time by Genre')
+fig.update_layout(xaxis_title='Year', yaxis_title='Average Rating')
+fig.show()
+
+#Drama and Crime Genres most Ratings
+
+top_k = data.sort_values(by='rating', ascending=False).head(10)
+
+# Print the top 10 movies
+print(top_k[['name', 'year', 'rating', 'genre']])
+
+# Convert the box office column to numeric values
+data['box_office'] = pd.to_numeric(data['box_office'], errors='coerce')
+
+# Filter out missing values in the box office column
+data = data.dropna(subset=['box_office'])
+
+# Create the scatter plot
+fig = px.scatter(data, x='rating', y='box_office', color='genre', size='box_office', hover_name='name', 
+                 title='Movie Ratings vs. Box Office Revenue')
+
+# Customize the plot
+fig.update_layout(xaxis_title='Rating', yaxis_title='Box Office Revenue', legend_title='Genre', height=800, width=1200)
+
+# Show the plot
+fig.show()
+
+#Movie Ratings Vs Box Office Revenue
+
+fig = px.box(data, x='certificate', y='rating', color='certificate', 
+             title='Movie Ratings by Certificate')
+fig.update_layout(xaxis_title='Certificate', yaxis_title='Rating')
+fig.show()
+
